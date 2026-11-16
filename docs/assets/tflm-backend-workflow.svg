@@ -1,0 +1,187 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="880" viewBox="0 0 1800 880" role="img" aria-labelledby="title desc">
+  <title id="title">TFLM backend workflow</title>
+  <desc id="desc">A TFLite model is optionally quantized, compiled for either a CPU with TFLM and CMSIS-NN or an Ethos-U55 NPU with Arm Vela, emitted as four C and C++ files, integrated into an FSP project, assigned to suitable memory, and validated on the target board.</desc>
+
+  <defs>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="12.6" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 L14 7 L0 14 Z" fill="#47627C"/>
+    </marker>
+    <symbol id="icon-file" viewBox="0 0 48 48">
+      <path d="M13 5h15l8 8v30H13z M28 5v9h8 M18 23h13 M18 29h13 M18 35h9"/>
+    </symbol>
+    <symbol id="icon-quantize" viewBox="0 0 48 48">
+      <path d="M9 13h30 M9 24h30 M9 35h30"/>
+      <circle cx="18" cy="13" r="4"/><circle cx="31" cy="24" r="4"/><circle cx="22" cy="35" r="4"/>
+    </symbol>
+    <symbol id="icon-chip" viewBox="0 0 48 48">
+      <rect x="12" y="12" width="24" height="24" rx="4"/>
+      <path d="M18 2v8 M24 2v8 M30 2v8 M18 38v8 M24 38v8 M30 38v8 M2 18h8 M2 24h8 M2 30h8 M38 18h8 M38 24h8 M38 30h8 M19 19h10v10H19z"/>
+    </symbol>
+    <symbol id="icon-npu" viewBox="0 0 48 48">
+      <path d="M24 4l17 10v20L24 44 7 34V14z M18 18h12v12H18z M24 10v6 M24 32v6 M10 18h6 M10 30h6 M32 18h6 M32 30h6"/>
+    </symbol>
+    <symbol id="icon-code" viewBox="0 0 48 48">
+      <path d="M18 13L7 24l11 11 M30 13l11 11-11 11 M27 8l-6 32"/>
+    </symbol>
+    <symbol id="icon-project" viewBox="0 0 48 48">
+      <path d="M7 10h13l4 5h17v25H7z M7 16h34"/>
+      <path d="M19 29l4 4 8-9"/>
+    </symbol>
+    <symbol id="icon-memory" viewBox="0 0 48 48">
+      <rect x="7" y="10" width="34" height="10" rx="2"/>
+      <rect x="7" y="27" width="34" height="10" rx="2"/>
+      <path d="M13 20v4 M20 20v4 M27 20v4 M34 20v4 M13 37v4 M20 37v4 M27 37v4 M34 37v4 M12 15h2 M12 32h2"/>
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r="18"/>
+      <path d="M15 24l6 6 12-13"/>
+    </symbol>
+    <style>
+      .canvas { fill: #F7F9FC; }
+      .header-rule { stroke: #D9E2EC; stroke-width: 2; }
+      .title { font: 700 40px Arial, sans-serif; fill: #142F49; }
+      .subtitle { font: 400 20px Arial, sans-serif; fill: #5B7187; }
+      .stage { font: 700 15px Arial, sans-serif; letter-spacing: 1.5px; fill: #60778D; }
+      .step-number { font: 700 15px Arial, sans-serif; fill: #FFFFFF; }
+      .heading { font: 700 24px Arial, sans-serif; fill: #142F49; }
+      .body { font: 400 18px Arial, sans-serif; fill: #38536D; }
+      .small { font: 400 16px Arial, sans-serif; fill: #60778D; }
+      .code { font: 600 17px Consolas, "Courier New", monospace; fill: #24455F; }
+      .tag { font: 700 15px Arial, sans-serif; fill: #FFFFFF; }
+      .tag-code { font: 700 15px Consolas, "Courier New", monospace; fill: #FFFFFF; }
+      .card { fill: #FFFFFF; stroke: #B7C7D6; stroke-width: 2; }
+      .arrow { fill: none; stroke: #47627C; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow); }
+      .optional { fill: none; stroke: #8298AC; stroke-width: 2.5; stroke-dasharray: 9 8; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow); }
+      .icon { fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+      .icon-blue { color: #1476C8; }
+      .icon-amber { color: #C8730B; }
+      .icon-violet { color: #6847BA; }
+      .icon-green { color: #16835E; }
+      .icon-slate { color: #47627C; }
+    </style>
+  </defs>
+
+  <rect class="canvas" width="1800" height="880" rx="24"/>
+  <text class="title" x="60" y="58">TFLM backend workflow</text>
+  <text class="subtitle" x="60" y="92">From a .tflite model to verified inference on a Renesas RA8xx target</text>
+  <line class="header-rule" x1="60" y1="122" x2="1740" y2="122"/>
+
+  <!-- Legend -->
+  <path class="arrow" d="M1355 57h54"/>
+  <text class="small" x="1424" y="63">required path</text>
+  <path class="optional" d="M1355 91h54"/>
+  <text class="small" x="1424" y="97">optional / bypass</text>
+
+  <!-- Stage 1: model input -->
+  <circle cx="72" cy="161" r="15" fill="#1476C8"/>
+  <text class="step-number" x="72" y="166" text-anchor="middle">1</text>
+  <text class="stage" x="97" y="166">MODEL INPUT</text>
+  <rect class="card" x="60" y="190" width="255" height="190" rx="16"/>
+  <rect x="82" y="214" width="54" height="54" rx="12" fill="#E7F2FC"/>
+  <use href="#icon-file" x="92" y="224" width="34" height="34" class="icon icon-blue"/>
+  <text class="heading" x="82" y="304">TFLite model</text>
+  <text class="code" x="82" y="335">model.tflite</text>
+  <text class="small" x="82" y="362">FP32 or quantized</text>
+
+  <!-- Stage 2: optional preparation -->
+  <circle cx="372" cy="161" r="15" fill="#C8730B"/>
+  <text class="step-number" x="372" y="166" text-anchor="middle">2</text>
+  <text class="stage" x="397" y="166">PREPARE</text>
+  <rect x="360" y="190" width="290" height="190" rx="16" fill="#FFFCF6" stroke="#E0A650" stroke-width="2"/>
+  <rect x="382" y="214" width="54" height="54" rx="12" fill="#FFF0D8"/>
+  <use href="#icon-quantize" x="392" y="224" width="34" height="34" class="icon icon-amber"/>
+  <rect x="532" y="220" width="92" height="28" rx="14" fill="#C8730B"/>
+  <text class="tag" x="578" y="240" text-anchor="middle">OPTIONAL</text>
+  <text class="heading" x="382" y="304">Quantize to INT8</text>
+  <text class="code" x="382" y="335">--quantize</text>
+  <text class="small" x="382" y="362">Representative calibration data</text>
+
+  <!-- Stage 3: target selection -->
+  <circle cx="712" cy="161" r="15" fill="#47627C"/>
+  <text class="step-number" x="712" y="166" text-anchor="middle">3</text>
+  <text class="stage" x="737" y="166">SELECT TARGET</text>
+  <path d="M805 198 L920 285 L805 372 L690 285 Z" fill="#FFFFFF" stroke="#8AA0B4" stroke-width="2"/>
+  <text class="heading" x="805" y="280" text-anchor="middle">CPU or NPU?</text>
+  <text class="small" x="805" y="311" text-anchor="middle">Choose one target</text>
+
+  <!-- Stage 4: compilation paths -->
+  <circle cx="987" cy="161" r="15" fill="#47627C"/>
+  <text class="step-number" x="987" y="166" text-anchor="middle">4</text>
+  <text class="stage" x="1012" y="166">COMPILE</text>
+
+  <rect x="975" y="190" width="300" height="150" rx="16" fill="#EDF6FE" stroke="#2584D4" stroke-width="2"/>
+  <rect x="997" y="214" width="48" height="48" rx="11" fill="#DCEEFF"/>
+  <use href="#icon-chip" x="1006" y="223" width="30" height="30" class="icon icon-blue"/>
+  <rect x="1179" y="214" width="70" height="28" rx="14" fill="#1476C8"/>
+  <text class="tag-code" x="1214" y="233" text-anchor="middle">--cpu</text>
+  <text class="heading" x="997" y="293">TFLM + CMSIS-NN</text>
+  <text class="small" x="997" y="320">FP32 or quantized model</text>
+
+  <rect x="975" y="405" width="300" height="165" rx="16" fill="#F4F0FF" stroke="#7757C8" stroke-width="2"/>
+  <rect x="997" y="429" width="48" height="48" rx="11" fill="#E8DFFF"/>
+  <use href="#icon-npu" x="1006" y="438" width="30" height="30" class="icon icon-violet"/>
+  <rect x="1179" y="429" width="70" height="28" rx="14" fill="#6847BA"/>
+  <text class="tag-code" x="1214" y="448" text-anchor="middle">--npu</text>
+  <text class="heading" x="997" y="508">Vela → Ethos-U55</text>
+  <text class="small" x="997" y="536">INT8 required for acceleration</text>
+  <text class="small" x="997" y="558">Unsupported ops run on the CPU</text>
+
+  <!-- Stage 5: generated output -->
+  <circle cx="1372" cy="161" r="15" fill="#16835E"/>
+  <text class="step-number" x="1372" y="166" text-anchor="middle">5</text>
+  <text class="stage" x="1397" y="166">GENERATE</text>
+  <rect x="1360" y="230" width="380" height="250" rx="16" fill="#EDF9F4" stroke="#27936F" stroke-width="2"/>
+  <rect x="1384" y="254" width="54" height="54" rx="12" fill="#DDF3EA"/>
+  <use href="#icon-code" x="1394" y="264" width="34" height="34" class="icon icon-green"/>
+  <rect x="1603" y="266" width="111" height="28" rx="14" fill="#16835E"/>
+  <text class="tag" x="1658" y="286" text-anchor="middle">deploy/src</text>
+  <text class="heading" x="1384" y="345">Generated C/C++</text>
+  <text class="code" x="1384" y="382">model.h</text>
+  <text class="code" x="1515" y="382">model.cc</text>
+  <text class="code" x="1384" y="417">model_data.h</text>
+  <text class="code" x="1515" y="417">model_data.c</text>
+  <text class="small" x="1384" y="454">Same runtime API for both targets</text>
+
+  <!-- Main flow connectors -->
+  <path class="arrow" d="M315 285 H352"/>
+  <path class="arrow" d="M650 285 H682"/>
+  <path class="arrow" d="M920 285 H967"/>
+  <path class="arrow" d="M862 329 C908 364 913 488 943 488 H967"/>
+  <path class="arrow" d="M1275 265 C1303 265 1306 303 1328 303 H1352"/>
+  <path class="arrow" d="M1275 488 C1303 488 1306 415 1328 415 H1352"/>
+
+  <!-- Quantization bypass -->
+  <path class="optional" d="M188 380 V430 H805 V378"/>
+  <text class="small" x="415" y="456">Use the supplied model when conversion is not needed</text>
+
+  <!-- Deployment checklist -->
+  <line class="header-rule" x1="60" y1="620" x2="1740" y2="620"/>
+  <circle cx="72" cy="650" r="15" fill="#47627C"/>
+  <text class="step-number" x="72" y="655" text-anchor="middle">6</text>
+  <text class="stage" x="97" y="655">DEPLOY AND VERIFY</text>
+
+  <rect class="card" x="60" y="680" width="470" height="150" rx="16"/>
+  <rect x="84" y="704" width="48" height="48" rx="11" fill="#EAF0F5"/>
+  <use href="#icon-project" x="93" y="713" width="30" height="30" class="icon icon-slate"/>
+  <text class="heading" x="151" y="731">Integrate with FSP</text>
+  <text class="body" x="84" y="782">Enable the required TFLM kernels</text>
+  <text class="small" x="84" y="810">Compile model.cc as C++17</text>
+
+  <rect class="card" x="665" y="680" width="470" height="150" rx="16"/>
+  <rect x="689" y="704" width="48" height="48" rx="11" fill="#EAF0F5"/>
+  <use href="#icon-memory" x="698" y="713" width="30" height="30" class="icon icon-slate"/>
+  <text class="heading" x="756" y="731">Place memory</text>
+  <text class="body" x="689" y="782">Model data → flash / OSPI</text>
+  <text class="small" x="689" y="810">Tensor arena → SRAM / writable SDRAM</text>
+
+  <rect class="card" x="1270" y="680" width="470" height="150" rx="16"/>
+  <rect x="1294" y="704" width="48" height="48" rx="11" fill="#EAF0F5"/>
+  <use href="#icon-check" x="1303" y="713" width="30" height="30" class="icon icon-slate"/>
+  <text class="heading" x="1361" y="731">Validate on target</text>
+  <text class="body" x="1294" y="782">ModelInit() → RunModel() → status</text>
+  <text class="small" x="1294" y="810">Measure arena usage, latency, and accuracy</text>
+
+  <path class="arrow" d="M530 755 H657"/>
+  <path class="arrow" d="M1135 755 H1262"/>
+  <path class="arrow" d="M1550 480 V585 Q1550 610 1525 610 H505 Q480 610 480 635 V672"/>
+</svg>

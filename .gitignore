@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+tflm-env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+*.elf
+*.srec
+*.map
+
+# Compiler output and local models
+deploy_output/
+output/
+models_int8/
+.pytest_cache/
+
+# Logs
+*.log

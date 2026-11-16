@@ -1,0 +1,10 @@
+# RUHMI Framework TFLM backend dependencies
+#
+# Install into a Python 3.10 virtual environment:
+#   pip install -r requirements-tflm.txt
+
+tensorflow==2.18.0           # Quantization, quantization quality report, host evaluation, arena estimation
+numpy==1.26.4                # Arrays and calibration data; validated version, keep pinned
+ethos-u-vela==5.2.0          # Required for NPU compilation
+PyYAML>=6.0,<7               # YAML configuration mode
+junitparser>=3.2,<4          # JUnit XML output (--result)

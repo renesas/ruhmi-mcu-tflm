@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.tflite -text
+*.hex -text
+*.png -text
+*.jpg -text
+*.zip -text
+*.whl -text

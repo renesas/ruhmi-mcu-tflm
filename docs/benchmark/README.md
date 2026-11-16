@@ -1,0 +1,274 @@
+# TFLM Performance Benchmark on EK-RA8P1
+
+> [!NOTE]
+> Latency and memory use depend on the model, the compiler and FSP versions, and the project configuration. Measure them with your own setup.
+
+---
+
+## Table of contents
+
+1. [Purpose](#1-purpose)
+2. [Prepare generated model files](#2-prepare-generated-model-files)
+3. [Import the benchmark project](#3-import-the-benchmark-project)
+4. [Add the generated model](#4-add-the-generated-model)
+5. [Required FSP components](#5-required-fsp-components)
+6. [Memory placement](#6-memory-placement)
+7. [Runtime diagnostics](#7-runtime-diagnostics)
+8. [Measurement sequence](#8-measurement-sequence)
+9. [Run the benchmark](#9-run-the-benchmark)
+10. [Inspect memory usage](#10-inspect-memory-usage)
+
+---
+
+## 1. Purpose
+
+This benchmark project measures how long `RunModel(false)` takes on an EK-RA8P1 board, and reports initialization, arena usage, and invocation status in the e² studio debugger.
+
+- Release project: [`Benchmark_TFLM_v660.zip`](Benchmark_TFLM_v660.zip)
+- Target board: EK-RA8P1
+- FSP baseline: 6.6.0
+- Compiler: the LLVM toolchain configured by the project
+
+## Project Structure
+
+```
+Benchmark_TFLM_v660
+├─ src
+│   ├─ hal_entry.c
+│   ├─ hal_warmstart.c
+│   ├─ cxa_demangle_stub.c
+│   └─ ruhmi_perf_eval
+│       ├─ ruhmi_perf_eval.c
+│       ├─ syscalls_stub.c
+│       ├─ ruhmi_inference_code      <-- place the generated model files here
+│       └─ utils
+│           ├─ external_memory.c/.h
+│           └─ time_counter.c/.h
+├─ ra / ra_cfg / ra_gen               FSP, TFLM, CMSIS-NN and Ethos-U sources and configuration
+├─ script/fsp.lld
+├─ configuration.xml
+├─ RA8P1_EK_Reset_OSPI.JLinkScript
+└─ Benchmark_TFLM_v660 Debug_Flat.launch
+```
+
+- **ruhmi_inference_code**: empty in the release archive; place your four generated files here.
+- **ruhmi_perf_eval.c**: initializes the model, times one inference, and publishes the results.
+- **utils**: cycle counter and external-memory initialization.
+- **cxa_demangle_stub.c**: keeps the C++ name demangler out of the image, saving about 50 KB of internal code flash.
+
+---
+
+## 2. Prepare generated model files
+
+First, compile a model with the TFLM compiler from the repository root:
+
+```bash
+python scripts/mcu_compile_tflm.py model_int8.tflite deploy_output --npu
+```
+
+Replace `model_int8.tflite` with your own INT8 model. To try the flow first, use the [Quick Start](../../README.md#quick-start) sample model.
+
+The generated files will appear under `deploy_output/<model_output>/deploy/src/`:
+
+```text
+model.h
+model.cc
+model_data.h
+model_data.c
+```
+
+---
+
+## 3. Import the benchmark project
+
+1. Launch e² studio.
+2. Select **File > Import > General > Rename & Import Existing C/C++ Project Into Workspace**, and select the benchmark ZIP archive.
+3. Open `configuration.xml`.
+4. Confirm the selected device, board, FSP version, memory configuration, and required stacks.
+5. Select **Generate Project Content**.
+
+> [!NOTE]
+> With FSP 6.6.0, importing a prebuilt project through the plain **Existing Projects into Workspace** wizard can leave out the smart bundle (`.sbd`) file, and debugging then fails with `Cannot find smart bundle`. The **Rename & Import** option above avoids this.
+
+---
+
+## 4. Add the generated model
+
+Copy the four generated files into:
+
+```text
+src/ruhmi_perf_eval/ruhmi_inference_code/
+```
+
+Refresh the project and confirm that `model.cc` is compiled as C++.
+
+If your model was compiled with a `--suffix`, update the include and the calls in `ruhmi_perf_eval.c` to use the suffixed names, for example:
+
+```c
+#include "ruhmi_inference_code/model_detector.h"
+
+ModelInit_detector();
+RunModel_detector(false);
+GetTensorArenaSizeBytes_detector();
+GetTensorArenaUsedBytes_detector();
+GetLastInvokeStatus_detector();
+```
+
+---
+
+## 5. Required FSP components
+
+For CPU execution, the project uses the TFLM core and CMSIS-NN kernel components.
+
+For NPU execution, it also uses the TFLM Ethos-U kernel and the RA8P1 Ethos-U driver/FSP integration. The harness opens the Ethos-U instance before model initialization when `R_NPU` is defined.
+
+> [!NOTE]
+> These components are already configured in the release benchmark project — you don't need to configure them again unless you start from a fresh project. The full list is in [FSP project requirements](../tflm_backend/README.md#9-fsp-project-requirements).
+
+---
+
+## 6. Memory placement
+
+Two generated objects are worth reviewing before you place them in memory:
+
+| Object | Recommended memory |
+| --- | --- |
+| `g_model_data*` in `model_data*.c` | Internal flash, or OSPI for large model data |
+| `tensor_arena*` in `model*.cc` | Internal SRAM, or external SDRAM |
+
+Example: placing the model data in OSPI, in `model_data.c`.
+
+```c
+__attribute__((aligned(16), section(".ospi0_cs1")))
+const uint8_t g_model_data[...] = { ... };
+```
+
+Example: placing the tensor arena in SDRAM, in `model.cc`.
+
+```cpp
+__attribute__((aligned(16), section(".sdram"))) static uint8_t tensor_arena[TENSOR_ARENA_SIZE];
+```
+
+> [!WARNING]
+> Do not place the tensor arena in flash or OSPI — it must be writable memory, and the runtime writes to it constantly while the model is running.
+
+Configure the memory-initialization switches in `ruhmi_perf_eval.c` to match your placement:
+
+```c
+#define EXTERNAL_MEMORY_OSPI_ENABLE  (1)
+#define EXTERNAL_MEMORY_SDRAM_ENABLE (1)
+#define INTERNAL_MEMORY_SIP_ENABLE   (0)
+```
+
+OSPI and SDRAM must be initialized before the model data or the tensor arena is accessed. The project already calls the external-memory initialization from the BSP warm-start hook, right after C runtime and pin initialization.
+
+The table below shows the section attributes for placing a buffer in different kinds of memory. These section names come from the board's linker configuration; always double-check them against your project's actual linker file.
+
+| Buffer type | Target memory type | Macro |
+| ----------- | -------------------------------------------- | -------------------------------------------------------------------- |
+| ROM | OnChipFlash | Nothing special — just define it as `const uint8_t buff[] = {xxxx};` |
+| ROM | OSPI (Unit 0, CS 1) | `__attribute__((aligned(16), section(".ospi0_cs1")))` |
+| ROM | SiP Flash | `__attribute__((aligned(16), section(".sip_flash")))` |
+| ROM | SDRAM, initial data in OnChipFlash | `__attribute__((aligned(16), section(".sdram_from_flash")))` |
+| ROM | SDRAM, initial data in OSPI (Unit 0, CS 1) | `__attribute__((aligned(16), section(".sdram_from_ospi0_cs1")))` |
+| ROM | SDRAM, initial data in SiP Flash | `__attribute__((aligned(16), section(".sdram_from_sip_flash")))` |
+| ROM | SRAM, initial data in OnChipFlash | Nothing special — just define it as `uint8_t buff[] = {xxxx};` |
+| ROM | SRAM, initial data in OSPI (Unit 0, CS 1) | `__attribute__((aligned(16), section(".ram_from_ospi0_cs1")))` |
+| ROM | SRAM, initial data in SiP Flash | `__attribute__((aligned(16), section(".ram_from_sip_flash")))` |
+| RAM | SRAM | Nothing special — just define it as `uint8_t buff[];` |
+| RAM | SDRAM | `__attribute__((aligned(16), section(".sdram")))` |
+
+---
+
+## 7. Runtime diagnostics
+
+The harness publishes its results through global variables you can watch in the debugger:
+
+| Variable | Meaning |
+| --- | --- |
+| `g_dbg_model_init_status` | Return value from `ModelInit()` |
+| `g_dbg_arena_total` | Configured tensor-arena capacity in bytes |
+| `g_dbg_arena_used` | Arena bytes actually used, after a successful allocation |
+| `g_dbg_invoke_status` | Status of the `RunModel()` call |
+| `ruhmi_perf_eval_cycles64` | CPU cycles consumed by `RunModel(false)` (64-bit) |
+| `ruhmi_perf_eval_time_us` | The same time in microseconds |
+| `ruhmi_perf_eval_time_ms` | The same time in milliseconds |
+| `ruhmi_perf_eval_time` | 32-bit cycle count, kept for compatibility; `0` if the 32-bit counter wrapped |
+
+Use the 64-bit values. The 32-bit DWT counter wraps after about 4.29 seconds at 1 GHz, which a large CPU model can exceed; the harness extends it to 64 bits in software.
+
+### Expected values on success
+
+```text
+g_dbg_model_init_status   = 0
+g_dbg_arena_total         > 0
+g_dbg_arena_used          > 0
+g_dbg_invoke_status       = 0
+ruhmi_perf_eval_cycles64  > 0
+```
+
+### If something looks wrong
+
+| Observation | Likely area to investigate |
+| --- | --- |
+| Stopped early with initialization status `-1` | Model data validity, or model data placement/access |
+| Stopped early with initialization status `-2` | Arena capacity, operator registration, custom operators, kernel `Prepare()`, or tensor/operator compatibility |
+| Stopped early with invoke status `-1` | Runtime kernel failure, NPU/driver issue, or model/runtime incompatibility |
+| Both statuses `0` but zero elapsed time | The inference is still running; large CPU models can take minutes. Resume and wait. |
+| Hard fault while reading the model | OSPI/flash section or initialization problem |
+| Hard fault while allocating or invoking | Arena section, writable memory, alignment, capacity, or driver/cache configuration problem |
+
+> [!NOTE]
+> An initialization status of `-2` does not, by itself, mean that you don't have enough RAM. `AllocateTensors()` also prepares operators, and it can fail simply because a required operator or a valid kernel implementation is missing.
+
+---
+
+## 8. Measurement sequence
+
+The harness performs these steps, in order:
+
+1. Initialize the cycle counter.
+2. Open the NPU driver, if applicable.
+3. Call `ModelInit()`, outside the timed region. On failure, stop at a breakpoint.
+4. Capture the arena diagnostics.
+5. Reset and read the cycle counter.
+6. Call `RunModel(false)`.
+7. Read the cycle counter and capture the invoke status. On failure, stop at a breakpoint.
+8. Convert the cycles to microseconds and milliseconds.
+9. Stop at a final breakpoint, so you can inspect everything in the debugger.
+
+`RunModel(false)` is used so that clearing the outputs is not included in the timing.
+
+---
+
+## 9. Run the benchmark
+
+1. Build the project.
+2. Start a debug session on the EK-RA8P1 board (**Debug As > Renesas GDB Hardware Debugging**).
+3. Continue execution until you reach the final breakpoint.
+4. Inspect the diagnostic variables.
+5. Confirm both model initialization and invocation succeeded before you report any latency number.
+6. Repeat the measurement a few times, and report the median or a distribution rather than a single run when you compare models.
+
+To keep comparisons fair, keep the following the same between runs:
+
+- CPU/NPU clock configuration
+- Compiler optimization settings
+- Cache configuration and maintenance
+- Memory placement
+- Input data
+- Warm-up policy
+- The `clean_outputs` argument
+
+---
+
+## 10. Inspect memory usage
+
+To check how much memory your model actually uses, review:
+
+- The linker map file
+- The e² studio Memory Usage view
+- Where `g_model_data*` is placed
+- Where `tensor_arena*` is placed, and how big it is
+
+Compare `g_dbg_arena_used` with `g_dbg_arena_total`. If the remaining margin is small, it may not be safe across future runtime or kernel-version changes — consider increasing the configured arena size and testing again.
