@@ -18,6 +18,6 @@ extern const uint8_t g_model_data[];
 #endif
 extern const size_t g_model_data_size;
 
-#define MODEL_DATA_SIZE 473744
+#define MODEL_DATA_SIZE 476832
 
 #endif /* MODEL_DATA_H */

@@ -138,7 +138,6 @@ Prebuilt Intel HEX images are available for five EK-RA8P1 camera and LCD use cas
 
 - [Setup overview and demo media](application_examples/README.md)
 - [Quick Deploy with Renesas Flash Programmer](application_examples/quick_deploy/README.md)
-- [Application release notes](application_examples/release_note.md)
 
 ## Documentation
 
@@ -157,7 +156,7 @@ Prebuilt Intel HEX images are available for five EK-RA8P1 camera and LCD use cas
 
 ```
 scripts/                  TFLM compiler (mcu_compile_tflm.py)
-application_examples/     EK-RA8P1 application sources, project ZIPs, and release notes
+application_examples/     EK-RA8P1 application sources and project ZIPs
 application_examples/quick_deploy/  Prebuilt HEX images and RFP guides
 scripts/utils/            Model metrics utility (check_model_metrics_tflm.py)
 docs/tflm_backend/        TFLM backend guide

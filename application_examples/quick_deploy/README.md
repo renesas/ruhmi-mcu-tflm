@@ -97,8 +97,8 @@ If you later use e² studio, **Debugger > Connection Settings > TrustZone > Set 
 **Optional: skip this section when using the prebuilt HEX.**
 
 1. Extract the source ZIP and import via **File > Import > Rename & Import Existing C/C++ Project Into Workspace**.
-2. Open `configuration.xml` and select **Generate Project Content**.
-3. In **Properties > C/C++ Build > Settings**, select **Debug** (or the required configuration). Set **Tool Settings > Objcopy > General > OutFormat = Intel Hex**, then **Apply and Close**.
+2. Open `configuration.xml` and select **Generate Project Content**. All four source project ZIPs omit the generated `ra_gen/` and `ra_cfg/` directories; generate them before building. Each ZIP supplies a matching `<project name> Debug_Flat.launch` and `.jlink` pair.
+3. In **Properties > C/C++ Build > Settings**, select **Debug** (or the required configuration). Both configurations use ATfE 22.1.0; keep **Tool Settings > Linker CPP > Enable garbage collection of unused input sections** enabled. Set **Tool Settings > Objcopy > General > OutFormat = Intel Hex**, then **Apply and Close**.
 4. Clean and build; confirm `llvm-objcopy ... -O ihex ...` succeeds. Use the `.hex` in the active `Debug` or `Release` folder with [RFP](#program-a-hex-image-with-rfp).
 
 HEX output does not change memory placement or security boundaries. If you change model placement, rebuild and check the HEX addresses and loader selection.

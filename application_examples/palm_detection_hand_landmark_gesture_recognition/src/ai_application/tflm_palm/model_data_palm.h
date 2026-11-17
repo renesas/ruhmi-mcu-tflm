@@ -18,6 +18,6 @@ extern const uint8_t g_model_data_palm[];
 #endif
 extern const size_t g_model_data_size_palm;
 
-#define MODEL_DATA_SIZE_PALM 1352192
+#define MODEL_DATA_SIZE_PALM 1352416
 
 #endif /* MODEL_DATA_PALM_H */

@@ -480,8 +480,7 @@ static fsp_err_t bsp_camera_write_array (st_ov_reg_t * array)
 
 static fsp_err_t ov5640_configure_clocks()
 {
-    /* 0x3035 SC PLL CONTRL1 0x11 RW (Default: 0x11)
-     * <TBD> 0 is div 16 according to linux driver */
+    /* 0x3035 SC PLL CONTRL1 0x11 RW (Default: 0x11) */
     uint8_t sys_clock_div = 1;  // Bit[7:4]: System clock divider
     uint8_t mipi_clock_div = 2; // Bit[3:0]: Scale divider for MIPI
     uint8_t reg_3035_value = (uint8_t)(sys_clock_div << 4 | mipi_clock_div << 0);

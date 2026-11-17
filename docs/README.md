@@ -21,7 +21,6 @@
 |----------|-------------|
 | [Setup Overview](../application_examples/README.md) | EK-RA8P1 hardware/software setup and demo media |
 | [Quick Deploy](../application_examples/quick_deploy/README.md) | Available source projects, prebuilt HEX images, and RFP programming instructions |
-| [Application Release Notes](../application_examples/release_note.md) | Application and deployment updates |
 
 ## Known Issues & Workarounds
 

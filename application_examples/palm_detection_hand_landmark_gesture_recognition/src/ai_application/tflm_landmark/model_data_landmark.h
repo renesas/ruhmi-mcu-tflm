@@ -18,6 +18,6 @@ extern const uint8_t g_model_data_landmark[];
 #endif
 extern const size_t g_model_data_size_landmark;
 
-#define MODEL_DATA_SIZE_LANDMARK 1065952
+#define MODEL_DATA_SIZE_LANDMARK 1066128
 
 #endif /* MODEL_DATA_LANDMARK_H */
